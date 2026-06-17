@@ -114,7 +114,10 @@ import subprocess
 
 if not os.path.exists("model.pkl"):
     with st.spinner("Training models on first launch… this takes ~30 seconds."):
-        subprocess.run(["python", "model.py"], check=True)
+        import sys
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        subprocess.run([sys.executable, os.path.join(script_dir, "model.py")],
+                       check=True, cwd=script_dir)
 
 # ── Load artifacts ────────────────────────────────────────────────────────────
 
