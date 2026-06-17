@@ -141,17 +141,18 @@ model, scaler, kmeans, kmeans_scaler, df, pitcher_summary = load_artifacts()
 PITCH_TYPE_LABELS = {v: k for k, v in PITCH_TYPE_MAP.items()}
 
 PITCH_COLORS = {
-    "Fastball":  "#ef4444", "FourSeam": "#ef4444",
-    "Sinker":    "#f97316",
-    "Cutter":    "#eab308",
-    "Slider":    "#22c55e",
-    "Sweeper":   "#10b981",
-    "Slurve":    "#14b8a6",
-    "Curveball": "#3b82f6",
-    "Gyro":      "#6366f1",
-    "Reaper":    "#8b5cf6",
-    "ChangeUp":  "#ec4899",
-    "Splitter":  "#f43f5e",
+    "Fastball":  "#ff4444",  # vivid red
+    "FourSeam":  "#ff4444",  # vivid red
+    "Sinker":    "#ff8c00",  # dark orange
+    "Cutter":    "#ffd700",  # gold
+    "Slider":    "#00e676",  # bright green
+    "Sweeper":   "#00bcd4",  # cyan
+    "Slurve":    "#40c4ff",  # light blue
+    "Curveball": "#2979ff",  # vivid blue
+    "Gyro":      "#d500f9",  # vivid purple
+    "Reaper":    "#aa00ff",  # deep violet
+    "ChangeUp":  "#ff4081",  # hot pink
+    "Splitter":  "#ffab40",  # amber
 }
 
 CLUSTER_LABELS = {
@@ -282,8 +283,6 @@ if page == "Pitcher Dashboard":
         st.plotly_chart(fig_pie, use_container_width=True)
 
     # ── Zone heat map ──
-    st.markdown('<div class="section-header">Pitch Location by Outcome</div>', unsafe_allow_html=True)
-
     outcome_filter = st.radio(
         "Color by", ["Whiff", "All swings"], horizontal=True, label_visibility="collapsed"
     )
@@ -320,12 +319,6 @@ if page == "Pitcher Dashboard":
         fig_zone.add_shape(type="line", x0=x, x1=x, y0=1.5, y1=3.5,
                            line=dict(color="rgba(255,255,255,0.25)", width=1))
 
-    # Home plate (pentagon approximation)
-    fig_zone.add_shape(type="path",
-        path="M -0.8333 1.5 L 0.8333 1.5 L 0.8333 1.25 L 0 1.0 L -0.8333 1.25 Z",
-        line=dict(color="#ffffff", width=2),
-        fillcolor="rgba(255,255,255,0.08)")
-
     fig_zone.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="#0d1117",
@@ -333,27 +326,21 @@ if page == "Pitcher Dashboard":
         xaxis=dict(gridcolor="#21262d", range=[-2.5, 2.5], zeroline=False, scaleanchor="y", scaleratio=1),
         yaxis=dict(gridcolor="#21262d", range=[0, 5], zeroline=False),
         margin=dict(t=10, b=40, l=40, r=10),
-        height=480,
-        width=380,
+        height=460,
         legend=dict(font=dict(size=11)),
     )
-    zone_col, _ = st.columns([1, 1])
-    with zone_col:
-        st.plotly_chart(fig_zone, use_container_width=False)
 
     # ── Movement profile ──
-    st.markdown('<div class="section-header">Movement Profile</div>', unsafe_allow_html=True)
-
     fig_mov = px.scatter(
         p_df.dropna(subset=["HorzBreak","InducedVertBreak"]),
         x="HorzBreak", y="InducedVertBreak",
         color="TaggedPitchType",
         color_discrete_map=PITCH_COLORS,
-        opacity=0.6,
+        opacity=0.7,
         labels={"HorzBreak": "Horizontal Break (in)", "InducedVertBreak": "Induced Vert Break (in)", "TaggedPitchType": "Pitch Type"},
     )
-    fig_mov.add_hline(y=0, line_color="#21262d", line_width=1)
-    fig_mov.add_vline(x=0, line_color="#21262d", line_width=1)
+    fig_mov.add_hline(y=0, line_color="#444d56", line_width=1)
+    fig_mov.add_vline(x=0, line_color="#444d56", line_width=1)
     fig_mov.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="#0d1117",
@@ -361,9 +348,18 @@ if page == "Pitcher Dashboard":
         xaxis=dict(gridcolor="#21262d", zeroline=False),
         yaxis=dict(gridcolor="#21262d", zeroline=False),
         margin=dict(t=10, b=40, l=40, r=10),
-        height=360,
+        height=460,
+        legend=dict(font=dict(size=11)),
     )
-    st.plotly_chart(fig_mov, use_container_width=True)
+
+    # ── Side by side ──
+    plot_col1, plot_col2 = st.columns([1, 1])
+    with plot_col1:
+        st.markdown('<div class="section-header">Pitch Location by Outcome</div>', unsafe_allow_html=True)
+        st.plotly_chart(fig_zone, use_container_width=True)
+    with plot_col2:
+        st.markdown('<div class="section-header">Movement Profile</div>', unsafe_allow_html=True)
+        st.plotly_chart(fig_mov, use_container_width=True)
 
 
 # ╔══════════════════════════════════════════════════════════════════════════╗
