@@ -330,13 +330,16 @@ if page == "Pitcher Dashboard":
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="#0d1117",
         font_color="#8b949e",
-        xaxis=dict(gridcolor="#21262d", range=[-2.5, 2.5], zeroline=False),
+        xaxis=dict(gridcolor="#21262d", range=[-2.5, 2.5], zeroline=False, scaleanchor="y", scaleratio=1),
         yaxis=dict(gridcolor="#21262d", range=[0, 5], zeroline=False),
         margin=dict(t=10, b=40, l=40, r=10),
-        height=380,
+        height=480,
+        width=380,
         legend=dict(font=dict(size=11)),
     )
-    st.plotly_chart(fig_zone, use_container_width=True)
+    zone_col, _ = st.columns([1, 1])
+    with zone_col:
+        st.plotly_chart(fig_zone, use_container_width=False)
 
     # ── Movement profile ──
     st.markdown('<div class="section-header">Movement Profile</div>', unsafe_allow_html=True)
