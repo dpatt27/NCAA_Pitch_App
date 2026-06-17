@@ -70,14 +70,20 @@ st.markdown("""
   /* Section headers */
   .section-header {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.7rem;
-    letter-spacing: 0.15em;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: #388bfd;
-    border-bottom: 1px solid #21262d;
-    padding-bottom: 0.4rem;
-    margin-bottom: 1rem;
+    color: #79c0ff;
+    border-bottom: 2px solid #388bfd;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.1rem;
   }
+
+  /* Page titles */
+  h1 { font-size: 2.4rem !important; color: #ffffff !important; font-weight: 800 !important; letter-spacing: -0.02em !important; }
+  h2 { font-size: 1.6rem !important; color: #e6edf3 !important; font-weight: 700 !important; }
+  h3 { font-size: 1.2rem !important; color: #c9d1d9 !important; font-weight: 600 !important; }
 
   /* Pitch type badge */
   .pitch-badge {
@@ -98,9 +104,7 @@ st.markdown("""
   /* Dataframe styling */
   [data-testid="stDataFrame"] { border: 1px solid #21262d; border-radius: 8px; }
 
-  /* Page title */
-  h1 { color: #e6edf3 !important; font-weight: 700 !important; }
-  h2, h3 { color: #c9d1d9 !important; }
+
 
   /* Selectbox / slider labels */
   label { color: #8b949e !important; font-size: 0.8rem !important; }
@@ -301,9 +305,26 @@ if page == "Pitcher Dashboard":
         labels={"PlateLocSide": "Horizontal Location (ft)", "PlateLocHeight": "Height (ft)", "TaggedPitchType": "Pitch Type"},
     )
 
-    # Strike zone box
+    # ── Strike zone — outer border ──
     fig_zone.add_shape(type="rect", x0=-0.8333, x1=0.8333, y0=1.5, y1=3.5,
-                       line=dict(color="#8b949e", width=1.5, dash="dot"))
+                       line=dict(color="#ffffff", width=2.5),
+                       fillcolor="rgba(255,255,255,0.03)")
+
+    # Inner 3×3 grid lines (horizontal)
+    for y in [1.5 + (3.5 - 1.5) / 3, 1.5 + 2 * (3.5 - 1.5) / 3]:
+        fig_zone.add_shape(type="line", x0=-0.8333, x1=0.8333, y0=y, y1=y,
+                           line=dict(color="rgba(255,255,255,0.25)", width=1))
+
+    # Inner 3×3 grid lines (vertical)
+    for x in [-0.8333 + (1.6666) / 3, -0.8333 + 2 * (1.6666) / 3]:
+        fig_zone.add_shape(type="line", x0=x, x1=x, y0=1.5, y1=3.5,
+                           line=dict(color="rgba(255,255,255,0.25)", width=1))
+
+    # Home plate (pentagon approximation)
+    fig_zone.add_shape(type="path",
+        path="M -0.8333 1.5 L 0.8333 1.5 L 0.8333 1.25 L 0 1.0 L -0.8333 1.25 Z",
+        line=dict(color="#ffffff", width=2),
+        fillcolor="rgba(255,255,255,0.08)")
 
     fig_zone.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
