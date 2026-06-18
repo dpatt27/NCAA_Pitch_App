@@ -121,18 +121,24 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Version sentinel — bump this string whenever features/data change
 # to force a clean retrain on next deploy
-MODEL_VERSION = "v3-no-plateloc"
+MODEL_VERSION = "v4-no-plateloc"
 version_file  = os.path.join(script_dir, ".model_version")
 
+PKLS = ["model.pkl", "scaler.pkl", "kmeans.pkl", "kmeans_scaler.pkl",
+        "clean_data.pkl", "pitcher_summary.pkl"]
+
 def needs_retrain():
-    if not os.path.exists(os.path.join(script_dir, "model.pkl")):
-        return True
     if not os.path.exists(version_file):
         return True
     return open(version_file).read().strip() != MODEL_VERSION
 
 if needs_retrain():
     with st.spinner("Training models… this takes ~30 seconds."):
+        # Wipe any stale pkl files first
+        for pkl in PKLS:
+            p = os.path.join(script_dir, pkl)
+            if os.path.exists(p):
+                os.remove(p)
         subprocess.run(
             [sys.executable, os.path.join(script_dir, "model.py")],
             check=True, cwd=script_dir
