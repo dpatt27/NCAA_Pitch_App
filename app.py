@@ -116,34 +116,12 @@ st.markdown("""
 import os
 import subprocess
 
-import sys
-script_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Version sentinel — bump this string whenever features/data change
-# to force a clean retrain on next deploy
-MODEL_VERSION = "v4-no-plateloc"
-version_file  = os.path.join(script_dir, ".model_version")
-
-PKLS = ["model.pkl", "scaler.pkl", "kmeans.pkl", "kmeans_scaler.pkl",
-        "clean_data.pkl", "pitcher_summary.pkl"]
-
-def needs_retrain():
-    if not os.path.exists(version_file):
-        return True
-    return open(version_file).read().strip() != MODEL_VERSION
-
-if needs_retrain():
-    with st.spinner("Training models… this takes ~30 seconds."):
-        # Wipe any stale pkl files first
-        for pkl in PKLS:
-            p = os.path.join(script_dir, pkl)
-            if os.path.exists(p):
-                os.remove(p)
-        subprocess.run(
-            [sys.executable, os.path.join(script_dir, "model.py")],
-            check=True, cwd=script_dir
-        )
-        open(version_file, "w").write(MODEL_VERSION)
+if not os.path.exists("model.pkl"):
+    with st.spinner("Training models on first launch… this takes ~30 seconds."):
+        import sys
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        subprocess.run([sys.executable, os.path.join(script_dir, "model.py")],
+                       check=True, cwd=script_dir)
 
 # ── Load artifacts ────────────────────────────────────────────────────────────
 
@@ -402,40 +380,25 @@ elif page == "Pitch Quality Scorer":
         pitch_type = st.selectbox("Pitch Type", list(PITCH_TYPE_MAP.keys()))
         hand       = st.radio("Pitcher Hand", ["Right", "Left"], horizontal=True)
 
-        velo      = st.slider("Velocity (mph)",            60.0, 100.0, 88.0, 0.1)
-        zone_spd  = st.slider("Zone Speed (mph)",          55.0,  95.0, 83.0, 0.1)
-        spin      = st.slider("Spin Rate (rpm)",          1000,   3500,  2200,  10)
-        spin_axis = st.slider("Spin Axis (degrees)",         0,    360,   200,   1)
+        velo  = st.slider("Velocity (mph)",         60.0, 100.0, 88.0, 0.1)
+        spin  = st.slider("Spin Rate (rpm)",       1000,  3500,  2200,  10)
+        ivb   = st.slider("Induced Vert Break (in)", -20.0, 25.0, 12.0, 0.1)
+        hb    = st.slider("Horizontal Break (in)", -20.0, 20.0,  5.0, 0.1)
 
-        st.markdown('<div class="section-header" style="margin-top:1rem">Movement</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header" style="margin-top:1rem">Release & Location</div>', unsafe_allow_html=True)
 
-        ivb  = st.slider("Induced Vert Break (in)", -20.0, 25.0, 12.0, 0.1)
-        hb   = st.slider("Horizontal Break (in)",   -20.0, 20.0,  5.0, 0.1)
-        vb   = st.slider("Vert Break (in)",         -20.0, 25.0,  8.0, 0.1)
-
-        st.markdown('<div class="section-header" style="margin-top:1rem">Release & Approach</div>', unsafe_allow_html=True)
-
-        ext       = st.slider("Extension (ft)",              4.0,  7.5,  6.2, 0.1)
-        rel_h     = st.slider("Release Height (ft)",         4.5,  7.0,  5.8, 0.1)
-        rel_side  = st.slider("Release Side (ft)",          -3.0,  3.0,  1.5 if hand == "Right" else -1.5, 0.1)
-        horz_rel  = st.slider("Horiz Release Angle (deg)",  -5.0,  5.0, -1.0, 0.1)
-        vert_rel  = st.slider("Vert Release Angle (deg)",   -5.0,  5.0, -3.0, 0.1)
-        vert_appr = st.slider("Vert Approach Angle (deg)", -10.0,  0.0, -5.0, 0.1)
-        horz_appr = st.slider("Horiz Approach Angle (deg)", -5.0,  5.0, -1.0, 0.1)
+        ext      = st.slider("Extension (ft)",         4.0,  7.5, 6.2, 0.1)
+        rel_h    = st.slider("Release Height (ft)",    4.5,  7.0, 5.8, 0.1)
+        rel_side = st.slider("Release Side (ft)",     -3.0,  3.0, 1.5 if hand == "Right" else -1.5, 0.1)
+        loc_h    = st.slider("Plate Height (ft)",      0.5,  5.0, 2.5, 0.1)
+        loc_side = st.slider("Plate Side (ft)",       -2.0,  2.0, 0.0, 0.1)
 
     with right:
         st.markdown('<div class="section-header">Predicted Whiff Probability</div>', unsafe_allow_html=True)
 
-        # Build feature vector — must match FEATURES order in utils.py
+        # Build feature vector
         pt_encoded = PITCH_TYPE_MAP.get(pitch_type, 0)
-        X_input = pd.DataFrame([{
-            "RelSpeed": velo, "SpinRate": spin, "SpinAxis": spin_axis,
-            "ZoneSpeed": zone_spd, "InducedVertBreak": ivb, "HorzBreak": hb,
-            "VertBreak": vb, "Extension": ext, "RelHeight": rel_h,
-            "RelSide": rel_side, "HorzRelAngle": horz_rel, "VertRelAngle": vert_rel,
-            "VertApprAngle": vert_appr, "HorzApprAngle": horz_appr,
-            "pitch_type_encoded": pt_encoded,
-        }])
+        X_input = np.array([[velo, spin, ivb, hb, ext, rel_h, rel_side, loc_h, loc_side, pt_encoded]])
         X_scaled = scaler.transform(X_input)
         whiff_prob = model.predict_proba(X_scaled)[0][1]
         whiff_pct  = whiff_prob * 100
@@ -492,24 +455,19 @@ elif page == "Pitch Quality Scorer":
         st.markdown('<div class="section-header">Feature Summary</div>', unsafe_allow_html=True)
 
         summary_df = pd.DataFrame({
-            "Metric": ["Velocity","Zone Speed","Spin Rate","Spin Axis","IVB","HB","VB","Extension","Rel Height","Rel Side"],
-            "Value":  [f"{velo} mph", f"{zone_spd} mph", f"{spin} rpm", f"{spin_axis}°",
-                       f"{ivb} in", f"{hb} in", f"{vb} in", f"{ext} ft", f"{rel_h} ft", f"{rel_side} ft"],
+            "Metric": ["Velocity","Spin Rate","Vert Break","Horiz Break","Extension","Plate Height","Plate Side"],
+            "Value":  [f"{velo} mph", f"{spin} rpm", f"{ivb} in", f"{hb} in", f"{ext} ft", f"{loc_h} ft", f"{loc_side} ft"],
         })
         st.dataframe(summary_df, use_container_width=True, hide_index=True)
 
         # Compare to dataset average for this pitch type
         st.markdown('<div class="section-header" style="margin-top:1rem">vs. NCAA D1 Avg ({})'.format(pitch_type) + '</div>', unsafe_allow_html=True)
-        comp = df[df["TaggedPitchType"] == pitch_type][["RelSpeed","SpinRate","InducedVertBreak","HorzBreak","VertBreak","Extension"]].mean()
+        comp = df[df["TaggedPitchType"] == pitch_type][["RelSpeed","SpinRate","InducedVertBreak","HorzBreak"]].mean()
         if not comp.isna().all():
             cdf = pd.DataFrame({
-                "Metric": ["Velo","Spin","IVB","HB","VB","Extension"],
-                "Yours":  [velo, spin, ivb, hb, vb, ext],
-                "D1 Avg": [
-                    round(comp["RelSpeed"],1), round(comp["SpinRate"],0),
-                    round(comp["InducedVertBreak"],1), round(comp["HorzBreak"],1),
-                    round(comp["VertBreak"],1), round(comp["Extension"],1),
-                ],
+                "Metric": ["Velo","Spin","IVB","HB"],
+                "Yours":  [velo, spin, ivb, hb],
+                "D1 Avg": [round(comp["RelSpeed"],1), round(comp["SpinRate"],0), round(comp["InducedVertBreak"],1), round(comp["HorzBreak"],1)],
             })
             cdf["Δ"] = (cdf["Yours"] - cdf["D1 Avg"]).round(1)
             st.dataframe(cdf, use_container_width=True, hide_index=True)
