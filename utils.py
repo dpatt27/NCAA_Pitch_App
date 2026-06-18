@@ -6,16 +6,28 @@ import numpy as np
 DATA_PATH = "https://drive.google.com/uc?export=download&id=1UPEiWx3BqVrWZH7l3vEkNN9-sdWH4bU9"
 
 FEATURES = [
+    # Velocity & spin
     "RelSpeed",
     "SpinRate",
+    "SpinAxis",
+    "ZoneSpeed",
+    # Movement
     "InducedVertBreak",
     "HorzBreak",
+    "VertBreak",
+    # Release
     "Extension",
     "RelHeight",
     "RelSide",
-    "PlateLocHeight",
-    "PlateLocSide",
+    # Approach angles
+    "HorzRelAngle",
+    "VertRelAngle",
+    "VertApprAngle",
+    "HorzApprAngle",
+    # Pitch identity
     "pitch_type_encoded",
+    # NOTE: PlateLocHeight / PlateLocSide intentionally excluded —
+    # location dominates importance and conflates stuff with command.
 ]
 
 PITCH_TYPE_MAP = {
